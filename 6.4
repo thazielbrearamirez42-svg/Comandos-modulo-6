@@ -1,0 +1,70 @@
+Comandos utilizados, práctica laboratorio 6.4: Seguridad en Linux.
+
+CONFIGURAR 2FA CON GOOGLE AUTHENTICATOR, MÓDULO PAM PARA ACCESO SSH
+
+============================================
+
+sudo dnf install openssh-server
+sudo systemctl start sshd
+sudo systemctl enable sshd
+sudo systemctl status sshd
+
+# Instalar Google Authenticator
+sudo dnf install google-authenticator -y
+
+# Luego de estar ubicados en el usuario que tendrá como requerimiento el código de Google Authenticator para conectarse a través de SSH, configuramos Google Authenticator (genera QR, claves, etc.)
+google-authenticator
+
+# Tendremos que completar una serie de pasos (asegúrate de aceptar todas las configuraciones, son por seguridad). Luego de haberlos completado y tener nuestro perfil en Google Authenticator, seguimos con la configuración PAM:
+
+sudo nano /etc/pam.d/sshd
+
+# La configuración del módulo PAM tiene que quedar de la siguiente manera:
+
+#%PAM-1.0
+auth        substack	  password-auth
+auth required pam_google_authenticator.so
+auth        include	  postlogin
+account     required	  pam_sepermit.so
+account     required	  pam_nologin.so
+account     include	  password-auth
+password    include	  password-auth
+# pam_selinux.so close should be the first session rule
+session     required	  pam_selinux.so close
+session     required	  pam_loginuid.so
+# pam_selinux.so open should only be followed by sessions to be executed in the user context
+session     required	  pam_selinux.so open env_params
+session     required	  pam_namespace.so
+session     optional	  pam_keyinit.so force revoke
+session     optional	  pam_motd.so
+session     include	  password-auth
+session     include	  postlogin
+
+# Guardamos, cerramos, y configuramos SSH para pedir 2FA. Ingresamos al archivo de configuración SSH:
+
+sudo nano /etc/ssh/sshd_config
+
+# Agregamos las siguientes líneas:
+PasswordAuthentication yes
+ChallengeResponseAuthentication yes
+UsePAM yes
+
+
+# Modificamos el contexto SElinux en los archivos del usuario para que los servicios no sean bloqueados cuando intenten acceder>
+sudo semanage fcontext -a -t auth_home_t "/home/tbrea(/.*)?"
+sudo restorecon -Rv /home/tbrea
+
+
+# Confirmamos los permisos:
+sudo chown tbrea:tbrea/home/tbrea/.google_authenticator
+sudo chmod 600 /home/tbrea/.google_authenticator
+
+sudo chmod 700 /home/tbrea
+sudo chown nmontero:tbrea/home/tbrea
+
+
+# Reiniciammos el servicio SSH para aplicar cambios
+sudo systemctl restart sshd
+
+# Probamos la conexión desde la máquina host:
+ssh nmontero@192.168.1.132
