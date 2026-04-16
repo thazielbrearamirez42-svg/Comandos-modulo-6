@@ -1,3 +1,5 @@
+Instalacion de IDS snort 
+
 # Actualizar sistema
 sudo dnf update -y && sudo dnf update -y
 
@@ -93,3 +95,41 @@ alert tcp any any -> $HOME_NET 80 (msg:"HTTP Traffic Detected on port 80"; sid:1
 sudo snort -c /usr/local/snort/etc/snort/snort.lua \
 -R /usr/local/snort/etc/snort/local.rules \
 -i ens160 -A alert_fast -s 65535 -k none
+
+========================================================================
+Ver errores del último dnf update
+sudo dnf update -y 2>&1 | tee /tmp/dnf_update.log
+
+Verificar que EPEL está activo
+dnf repolist | grep epel
+
+Reinstalar EPEL si falla
+sudo dnf remove epel-release -y && sudo dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm -y
+
+Limpiar caché de dnf y reintentar
+sudo dnf clean all && sudo dnf makecache
+
+Habilitar CRB (alternativa a subscription-manager )
+sudo dnf config-manager --set-enabled crb
+
+En Rocky Linux 9, usar crb en lugar de codeready-builder-for-rhel-9
+Verificar archivo ldconfig
+cat /etc/ld.so.conf.d/local.conf && sudo ldconfig -v 2>&1 | head -20
+
+Error: "FATAL: No DAQ modules available"
+ldconfig -p | grep daq && pkg-config --modversion libdaq
+
+Error: "Could not open interface ens160"
+ip link show && sudo ip link set dev ens160 up
+
+Error: "snort: command not found"
+ls /usr/local/snort/bin/snort && sudo ln -sf /usr/local/snort/bin/snort /usr/bin/snort
+
+Error de librería compartida al ejecutar snort
+ldd /usr/local/snort/bin/snort | grep "not found" && sudo ldconfig
+
+Error: "Permission denied" al capturar paquetes
+sudo setcap cap_net_raw,cap_net_admin=eip /usr/local/snort/bin/snort
+
+Ver log de sistema por errores de snort
+sudo journalctl -xe | grep -i snort | tail -30
