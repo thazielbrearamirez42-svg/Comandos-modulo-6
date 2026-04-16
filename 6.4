@@ -15,6 +15,10 @@ sudo dnf install google-authenticator -y
 # Luego de estar ubicados en el usuario que tendrá como requerimiento el código de Google Authenticator para conectarse a través de SSH, configuramos Google Authenticator (genera QR, claves, etc.)
 google-authenticator
 
+# Ingresar key de extension y poner cont. secreta
+
+copiamos codigos 
+
 # Tendremos que completar una serie de pasos (asegúrate de aceptar todas las configuraciones, son por seguridad). Luego de haberlos completado y tener nuestro perfil en Google Authenticator, seguimos con la configuración PAM:
 
 sudo nano /etc/pam.d/sshd
@@ -60,11 +64,11 @@ sudo chown tbrea:tbrea/home/tbrea/.google_authenticator
 sudo chmod 600 /home/tbrea/.google_authenticator
 
 sudo chmod 700 /home/tbrea
-sudo chown nmontero:tbrea/home/tbrea
+sudo chown tbrea:tbrea /home/tbrea
 
 
 # Reiniciammos el servicio SSH para aplicar cambios
 sudo systemctl restart sshd
 
-# Probamos la conexión desde la máquina host:
-ssh nmontero@192.168.1.132
+# Probamos la conexión desde la máquina host con simbolo de sistema y ponemos codigo :
+ssh tbrea@192.168.1.132
